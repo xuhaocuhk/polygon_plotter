@@ -9,15 +9,8 @@ from typing import Iterable, Tuple, Union
 
 
 class Plotter:
-    types = ('lightgreen', 'green', 'lightblue', 'blue', "blue_trans",
-             'pink_red', 'purple', 'violet', 'green_blue', 'orange', 'yellow', 'light_yellow', 'light_gray',
-             'pink_blue', 'white', 'white_border', 'light_gray_border')
-    pens = {
-        type: QtGui.QPen(QtGui.QColor(*getattr(fig_conf, type)['edge'])) for type in types
-    }
-    brushes = {
-        type: QtGui.QBrush(QtGui.QColor(*getattr(fig_conf, type)['face'])) for type in types
-    }
+    pens = { style: QtGui.QPen(QtGui.QColor(*value['edge'])) for style, value in fig_conf.styles.items()}
+    brushes = { style: QtGui.QBrush(QtGui.QColor(*value['face'])) for style, value in fig_conf.styles.items()}
 
     for pen in pens.values():
         pen.setWidth(fig_conf.edge_width)
@@ -45,8 +38,10 @@ class Plotter:
         # logging.debug(f'Scaling polygon {contour}')
         return self.create_polygon((contour + self.translation) * self.scaling)
 
-    def draw_contours(self, file_path: str, contours: Iterable[ Tuple[ Union[str, Tuple[Tuple[float, ...], Tuple[Tuple[float, ...]]]],
-                                                                       np.ndarray]]):
+    def draw_contours(self, file_path: str,
+                      contours: Iterable[ Tuple[ Union[str, Tuple[Tuple[float, ...], Tuple[Tuple[float, ...]]]],
+                                                                       np.ndarray]]
+                      ):
         """
         draw the given contours and save to an image file
         :param file_path: the path to the image file to save
@@ -65,14 +60,11 @@ class Plotter:
         self.window.polygons = [self.create_polygon(contour * scale + translate) for _, contour in contours]
 
         ### get brushes
-        self.window.brushes = [self.brushes[config] if isinstance(config, str)
-                                else QtGui.QBrush(QtGui.QColor(*config[0]))
-                                for config, _ in contours]
+        self.window.brushes = [self.brushes[config] for config, _ in contours]
 
         ### get pen and change the width
-        self.window.pens = [self.pens[config] if isinstance(config, str)
-                            else QtGui.QPen(QtGui.QColor(*config[1]))
-                            for config, _ in contours]
+        self.window.pens = [self.pens[config] for config, _ in contours]
+
         for pen in self.window.pens:
             pen.setWidth(fig_conf.edge_width)
         self.window.setStyleSheet('background-color: white;')
@@ -126,12 +118,3 @@ def get_polygon_bound(polygons):
     y_max = np.max([max(polygon[:, 1]) for polygon in polygons])
     return x_max, x_min, y_max, y_min
 
-
-if __name__ == '__main__':
-    plotter = Plotter()
-    triangle = np.array([[0,0], [0,1], [1,0]])
-    triangle2 = np.array([[0, 0], [0, -1], [1, 0]])
-
-    plotter.draw_contours('./layout.png', [('blue', triangle), ('lightgreen', triangle2)])
-
-    exit(0)
